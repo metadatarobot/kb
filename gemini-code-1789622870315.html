@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indic Dual-Language Keyboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Nirmala UI", "Gautami", "Mangal", sans-serif;
+      background-color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    #output {
+      width: 100%;
+      max-width: 650px;
+      height: 130px;
+      font-size: 24px;
+      padding: 12px;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      resize: none;
+      outline: none;
+      background: #ffffff;
+    }
+
+    .keyboard-container {
+      position: relative;
+      width: 100%;
+      max-width: 650px;
+      background: #1e293b;
+      padding: 12px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Top Language Switcher Bar */
+    .lang-bar {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      background-color: #0f172a;
+      padding: 4px;
+      border-radius: 8px;
+      margin-bottom: 2px;
+    }
+
+    .lang-btn {
+      flex: 1;
+      height: 36px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .lang-btn.active {
+      background-color: #3b82f6;
+      color: #ffffff;
+    }
+
+    /* Main Grid Layout: Consonants Left (5 cols) | Vowels Right (2 cols) */
+    .split-layout {
+      display: grid;
+      grid-template-columns: 5fr 2fr;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .grid-consonants {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      gap: 5px;
+    }
+
+    .grid-vowels {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      gap: 5px;
+    }
+
+    /* Base Key Style for Consonants and Vowels */
+    .key {
+      height: 46px;
+      background-color: #384252;
+      color: #ffffff;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      font-size: 17px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 0;
+      transition: background 0.1s, transform 0.05s;
+    }
+
+    .key:hover {
+      background-color: #475569;
+    }
+
+    .key:active {
+      background-color: #3b82f6;
+      transform: translateY(1px);
+    }
+
+    /* Specific Accent Style for Virama / Halant Key */
+    .key-virama {
+      background-color: #2563eb;
+      border-color: #3b82f6;
+    }
+    .key-virama:hover {
+      background-color: #1d4ed8;
+    }
+
+    .key .primary {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .key .secondary {
+      font-size: 10px;
+      color: #94a3b8;
+      position: absolute;
+      top: 3px;
+      right: 4px;
+      line-height: 1;
+    }
+
+    /* Standard Mobile Bottom Control Row */
+    .controls-row {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr 3fr 0.8fr 1.2fr 1.2fr;
+      gap: 5px;
+      width: 100%;
+    }
+
+    .btn-action {
+      height: 48px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-num { background-color: #475569; }
+    .btn-punct { background-color: #384252; border: 1px solid #475569; font-size: 18px; }
+    .btn-space { background-color: #e2e8f0; color: #0f172a; font-size: 15px; font-weight: 600; }
+    .btn-enter { background-color: #2563eb; }
+    .btn-bksp { background-color: #dc2626; }
+
+    .btn-action:active {
+      opacity: 0.85;
+    }
+
+    /* Numeric / Symbols View Grid */
+    .symbols-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+
+    /* Long-Press Gunintham / Barahkhadi Overlay */
+    .popup-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      z-index: 100;
+    }
+
+    .popup-title {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .popup-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .popup-grid .key {
+      height: 44px;
+      background-color: #334155;
+      font-size: 18px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <textarea id="output" placeholder="ఇక్కడ టైప్ చేయండి / यहाँ टाइप करें..."></textarea>
+
+  <div class="keyboard-container">
+    
+    <!-- TOP LANGUAGE TOGGLE HEADER -->
+    <div class="lang-bar">
+      <button class="lang-btn active" id="btn-te" onclick="switchLanguage('te')">తెలుగు (Telugu)</button>
+      <button class="lang-btn" id="btn-hi" onclick="switchLanguage('hi')">हिंदी (Hindi)</button>
+    </div>
+
+    <!-- MAIN INDIC SPLIT VIEW -->
+    <div id="indic-view" class="split-layout">
+      <!-- Consonants Panel (5 Columns x 8 Rows) -->
+      <div class="grid-consonants" id="consonants-grid"></div>
+
+      <!-- Vowels & Diacritics Panel (2 Columns x 8 Rows) -->
+      <div class="grid-vowels" id="vowels-grid"></div>
+    </div>
+
+    <!-- NUMBERS & SYMBOLS VIEW -->
+    <div id="num-view" class="symbols-grid hidden"></div>
+
+    <!-- STANDARD MOBILE BOTTOM BAR -->
+    <div class="controls-row">
+      <button class="btn-action btn-num" id="toggle-btn" onclick="toggleNumbers()">?123</button>
+      <button class="btn-action btn-punct" onclick="insertChar(',')">,</button>
+      <button class="btn-action btn-space" id="space-lbl" onclick="insertChar(' ')">తెలుగు</button>
+      <button class="btn-action btn-punct" onclick="insertChar('.')">.</button>
+      <button class="btn-action btn-bksp" onclick="backspace()">⌫</button>
+      <button class="btn-action btn-enter" onclick="insertChar('\n')">↵</button>
+    </div>
+
+    <!-- LONG-PRESS GUNINTHAM / BARAHKHADI POPUP -->
+    <div id="popup-picker" class="popup-overlay hidden">
+      <div class="popup-title" id="popup-title">Syllable Picker</div>
+      <div class="popup-grid" id="popup-grid"></div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentLang = 'te'; // Active language: 'te' or 'hi'
+
+    // DATA DEFINITIONS FOR TELUGU & HINDI
+    const langData = {
+      te: {
+        spaceLabel: 'తెలుగు',
+        consonants: [
+          'క', 'ఖ', 'గ', 'ఘ', 'ఙ',
+          'చ', 'ఛ', 'జ', 'ఝ', 'ఞ',
+          'ట', 'ఠ', 'డ', 'ఢ', 'ణ',
+          'త', 'థ', 'ద', 'ధ', 'న',
+          'ప', 'ఫ', 'బ', 'భ', 'మ',
+          'య', 'ర', 'ల', 'వ', 'శ',
+          'ష', 'స', 'హ', 'ళ', 'క్ష',
+          '్', 'ఱ', 'ఞ', 'ఱ', '?'
+        ],
+        vowels: [
+          { v: 'అ', m: '' },   { v: 'ఆ', m: 'ా' },
+          { v: 'ఇ', m: 'ి' },  { v: 'ఈ', m: 'ీ' },
+          { v: 'ఉ', m: 'ు' },  { v: 'ఊ', m: 'ూ' },
+          { v: 'ఋ', m: 'ృ' },  { v: 'ౠ', m: 'ౄ' },
+          { v: 'ఎ', m: 'ె' },  { v: 'ఏ', m: 'ే' },
+          { v: 'ఐ', m: 'ై' }, { v: 'ఒ', m: 'ొ' },
+          { v: 'ఓ', m: 'ో' },  { v: 'ఔ', m: 'ౌ' },
+          { v: 'అం', m: 'ం' }, { v: 'అః', m: 'ః' }
+        ],
+        matras: ['', 'ా', 'ి', 'ీ', 'ు', 'ూ', 'ృ', 'ె', 'ే', 'ై', 'ొ', 'ో', 'ౌ', 'ం', 'ః', '్'],
+        consRegex: /[\u0C15-\u0C39\u0C58\u0C59]/
+      },
+      hi: {
+        spaceLabel: 'हिंदी',
+        consonants: [
+          'क', 'ख', 'ग', 'घ', 'ङ',
+          'च', 'छ', 'ज', 'झ', 'ञ',
+          'ट', 'ठ', 'ड', 'ढ', 'ण',
+          'त', 'थ', 'द', 'ध', 'न',
+          'प', 'फ', 'ब', 'भ', 'म',
+          'य', 'र', 'ल', 'व', 'श',
+          'ष', 'स', 'ह', 'क्ष', 'त्र',
+          '्', 'ज्ञ', 'श्र', '़', '?'  // '्' (Halant) at the Caps Lock position, Nukta '़' included
+        ],
+        vowels: [
+          { v: 'अ', m: '' },   { v: 'आ', m: 'ा' },
+          { v: 'इ', m: 'ि' },  { v: 'ई', m: 'ी' },
+          { v: 'उ', m: 'ु' },  { v: 'ऊ', m: 'ू' },
+          { v: 'ऋ', m: 'ृ' },  { v: 'ऍ', m: 'ॅ' },
+          { v: 'ए', m: 'े' },  { v: 'ऐ', m: 'ै' },
+          { v: 'ऑ', m: 'ॉ' }, { v: 'ओ', m: 'ो' },
+          { v: 'औ', m: 'ौ' },  { v: 'अं', m: 'ं' },
+          { v: 'अँ', m: 'ँ' }, { v: 'अः', m: 'ः' }
+        ],
+        matras: ['', 'ा', 'ि', 'ी', 'ु', 'ू', 'ृ', 'े', 'ै', 'ो', 'ौ', 'ं', 'ँ', 'ः', '्'],
+        consRegex: /[\u0915-\u0939\u0958-\u095F]/
+      }
+    };
+
+    const symbols = [
+      '1', '2', '3', '4', '5', '6', '7',
+      '8', '9', '0', '!', '@', '#', '$',
+      '%', '^', '&', '*', '(', ')', '-',
+      '+', '=', '/', ':', ';', '"', '\'',
+      '<', '>', '?', '[', ']', '{', '}'
+    ];
+
+    // Language Switcher Function
+    function switchLanguage(lang) {
+      currentLang = lang;
+      document.getElementById('btn-te').classList.toggle('active', lang === 'te');
+      document.getElementById('btn-hi').classList.toggle('active', lang === 'hi');
+      document.getElementById('space-lbl').textContent = langData[lang].spaceLabel;
+
+      buildConsonants();
+      buildVowels();
+    }
+
+    // Render Consonants Grid
+    function buildConsonants() {
+      const container = document.getElementById('consonants-grid');
+      container.innerHTML = '';
+      const data = langData[currentLang];
+
+      data.consonants.forEach(char => {
+        const btn = document.createElement('button');
+        btn.className = 'key';
+
+        // Style the Virama / Halant key like a Shift/Caps key
+        if (char === '్' || char === '्') {
+          btn.classList.add('key-virama');
+          btn.innerHTML = `<span class="primary">${char} (Halant)</span>`;
+        } else {
+          btn.innerHTML = `<span class="primary">${char}</span>`;
+        }
+
+        let pressTimer = null;
+        let isLongPress = false;
+
+        const startPress = () => {
+          isLongPress = false;
+          if (data.consRegex.test(char) || char === 'క్ష' || char === 'क्ष' || char === 'त्र' || char === 'ज्ञ' || char === 'श्र') {
+            pressTimer = setTimeout(() => {
+              isLongPress = true;
+              showSyllablePopup(char);
+            }, 450);
+          }
+        };
+
+        const cancelPress = () => {
+          if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+        };
+
+        btn.addEventListener('pointerdown', startPress);
+        btn.addEventListener('pointerup', cancelPress);
+        btn.addEventListener('pointerleave', cancelPress);
+
+        btn.onclick = () => {
+          if (!isLongPress) {
+            insertChar(char);
+          }
+        };
+
+        container.appendChild(btn);
+      });
+    }
+
+    // Render Vowels & Diacritics Grid
+    function buildVowels() {
+      const container = document.getElementById('vowels-grid');
+      container.innerHTML = '';
+      const data = langData[currentLang];
+
+      data.vowels.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'key';
+        const subLabel = item.m ? '◌' + item.m : '';
+        btn.innerHTML = `<span class="primary">${item.v}</span><span class="secondary">${subLabel}</span>`;
+        
+        btn.onclick = () => handleVowelPress(item.v, item.m);
+        container.appendChild(btn);
+      });
+    }
+
+    // Context Logic: Inserts dependent Diacritic/Matra if typed after a Consonant
+    function handleVowelPress(vowelChar, matraChar) {
+      const textarea = document.getElementById('output');
+      const start = textarea.selectionStart;
+      const text = textarea.value;
+      const data = langData[currentLang];
+
+      const prevChar = start > 0 ? text.charAt(start - 1) : '';
+      const isConsonant = data.consRegex.test(prevChar) || ['క్ష', 'क्ष', 'त्र', 'ज्ञ', 'श्र'].includes(prevChar);
+
+      if (isConsonant && matraChar) {
+        insertChar(matraChar);
+      } else {
+        insertChar(vowelChar);
+      }
+    }
+
+    // Show Long-Press Syllable Picker (Gunintham / Barahkhadi) Overlay
+    function showSyllablePopup(baseConsonant) {
+      const popup = document.getElementById('popup-picker');
+      const title = document.getElementById('popup-title');
+      const grid = document.getElementById('popup-grid');
+      const data = langData[currentLang];
+
+      title.textContent = `'${baseConsonant}' ${currentLang === 'te' ? 'గుణింతం' : 'बारहखड़ी'} Picker`;
+      grid.innerHTML = '';
+
+      data.matras.forEach(matra => {
+        const btn = document.createElement('button');
+        btn.className = 'key';
+        const combined = baseConsonant + matra;
+        btn.innerHTML = `<span class="primary">${combined}</span>`;
+        btn.onclick = () => {
+          insertChar(combined);
+          closeSyllablePopup();
+        };
+        grid.appendChild(btn);
+      });
+
+      popup.classList.remove('hidden');
+    }
+
+    function closeSyllablePopup() {
+      document.getElementById('popup-picker').classList.add('hidden');
+    }
+
+    document.getElementById('popup-picker').onclick = (e) => {
+      if (e.target.id === 'popup-picker') closeSyllablePopup();
+    };
+
+    // Render Symbols Grid
+    function buildSymbols() {
+      const container = document.getElementById('num-view');
+      container.innerHTML = '';
+      symbols.forEach(char => {
+        const btn = document.createElement('button');
+        btn.className = 'key';
+        btn.style.height = '46px';
+        btn.innerHTML = `<span class="primary">${char}</span>`;
+        btn.onclick = () => insertChar(char);
+        container.appendChild(btn);
+      });
+    }
+
+    // Textarea Insertion Utility
+    function insertChar(char) {
+      const textarea = document.getElementById('output');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+
+      textarea.value = text.substring(0, start) + char + text.substring(end);
+      textarea.selectionStart = textarea.selectionEnd = start + char.length;
+      textarea.focus();
+    }
+
+    function backspace() {
+      const textarea = document.getElementById('output');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+
+      if (start === end && start > 0) {
+        textarea.value = text.substring(0, start - 1) + text.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start - 1;
+      } else if (start !== end) {
+        textarea.value = text.substring(0, start) + text.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start;
+      }
+      textarea.focus();
+    }
+
+    function toggleNumbers() {
+      const indicView = document.getElementById('indic-view');
+      const numView = document.getElementById('num-view');
+      const btn = document.getElementById('toggle-btn');
+
+      if (numView.classList.contains('hidden')) {
+        numView.classList.remove('hidden');
+        indicView.classList.add('hidden');
+        btn.textContent = currentLang === 'te' ? 'తెలుగు' : 'हिंदी';
+      } else {
+        numView.classList.add('hidden');
+        indicView.classList.remove('hidden');
+        btn.textContent = '?123';
+      }
+    }
+
+    // Initialize Layout
+    buildConsonants();
+    buildVowels();
+    buildSymbols();
+  </script>
+</body>
+</html>
